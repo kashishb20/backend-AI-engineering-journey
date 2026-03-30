@@ -12,7 +12,8 @@ def create_table():
         CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
-            description TEXT
+            description TEXT,
+            status TEXT
         )
     """)
     conn.close()

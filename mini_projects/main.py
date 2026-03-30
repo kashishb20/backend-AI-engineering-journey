@@ -1,3 +1,13 @@
+"""
+basically this project is not about tasks .
+it represents that i can build a system that
+stores , retrieves and manages data
+IT ALLOWS US TO :-
+-> create task
+-> view all and specific task
+-> delete task
+"""
+
 from fastapi import FastAPI, HTTPException
 from .database import get_db_connection
 from .models import create_table
@@ -8,7 +18,7 @@ app = FastAPI()
 # Create table on startup
 create_table()
 
-# ---------------- ROUTES ----------------
+#  ROUTES  
 
 @app.post("/tasks/")
 def create_task(task: Task):
@@ -16,8 +26,8 @@ def create_task(task: Task):
     cursor = conn.cursor()
     
     cursor.execute(
-        "INSERT INTO tasks (title, description) VALUES (?, ?)",
-        (task.title, task.description)
+        "INSERT INTO tasks (title, description, status) VALUES (?, ?, ?)",
+        (task.title, task.description, task.status)
     )
     
     conn.commit()
@@ -25,6 +35,26 @@ def create_task(task: Task):
     
     return {"message": "Task created successfully"}
 
+@app.put("/tasks/{task_id}")
+def update_task(task_id: int, task: Task):
+    conn = get_db_connection()
+    
+    result = conn.execute(
+        "UPDATE tasks SET title = ?, description = ?, status = ? WHERE id = ?",
+        (task.title, task.description, task.status, task_id)
+    )
+    
+    conn.commit()
+    conn.close()
+
+    if result.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    return {"message": "Task updated successfully"}
+
+@app.get("/")
+def home():
+    return {"message":"welcome to Task Manager API"}
 
 @app.get("/tasks/")
 def get_tasks():
