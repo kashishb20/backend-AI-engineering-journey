@@ -4,16 +4,14 @@ and
 runs once when app starts
 """
 
-from .database import get_db_connection
+from sqlalchemy import Column, Integer, String
+from .database import Base
 
-def create_table():
-    conn = get_db_connection()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            description TEXT,
-            status TEXT
-        )
-    """)
-    conn.close()
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    description = Column(String)
+    status = Column(String)
+

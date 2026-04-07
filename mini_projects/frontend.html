@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Task Manager</title>
+
+    <style>
+        body {
+            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            background: #040c1c;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgb(101, 123, 237);
+            padding: 30px;
+            margin-top: 50px;
+            width: 400px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        button:hover {
+            background: #b3002d;
+        }
+
+        li {
+            background: #f4678f;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Task Manager</h1>
+
+    <h3>Create Task</h3>
+    <input id="title" placeholder="Title">
+    <input id="description" placeholder="Description">
+    <input id="status" placeholder="Status">
+
+    <button onclick="createTask()">Add Task</button>
+
+    <h3>All Tasks</h3>
+    <ul id="taskList"></ul>
+
+</div>
+
+<script>
+const API_URL = "http://127.0.0.1:8000/tasks/";
+
+// ✅ CREATE TASK
+async function createTask() {
+    const title = document.getElementById("title").value;
+    const description = document.getElementById("description").value;
+    const status = document.getElementById("status").value;
+
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ title, description, status })
+        });
+
+        if (!response.ok) {
+            throw new Error("Backend not responding");
+        }
+
+        alert("Task Created ✅");
+
+        // clear inputs
+        document.getElementById("title").value = "";
+        document.getElementById("description").value = "";
+        document.getElementById("status").value = "";
+
+        getTasks();
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Failed to connect backend");
+    }
+}
+
+// ✅ GET TASKS
+async function getTasks() {
+    try {
+        const response = await fetch(API_URL);
+        const tasks = await response.json();
+
+        const list = document.getElementById("taskList");
+        list.innerHTML = "";
+
+        tasks.forEach(task => {
+            const li = document.createElement("li");
+
+            li.innerHTML = `
+                <span>${task.id} - ${task.title} (${task.status})</span>
+                <button onclick="deleteTask(${task.id})">❌</button>
+            `;
+
+            list.appendChild(li);
+        });
+
+    } catch (error) {
+        console.error("Error loading tasks:", error);
+    }
+}
+
+// ✅ DELETE TASK
+async function deleteTask(id) {
+    try {
+        const response = await fetch(`${API_URL}${id}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error("Delete failed");
+        }
+
+        alert("Task deleted 🗑️");
+        getTasks();
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Delete failed");
+    }
+}
+
+// load tasks on page load
+window.onload = getTasks;
+</script>
+
+</body>
+</html>

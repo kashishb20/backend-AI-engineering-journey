@@ -8,89 +8,82 @@ IT ALLOWS US TO :-
 -> delete task
 """
 
-from fastapi import FastAPI, HTTPException
-from .database import get_db_connection
-from .models import create_table
-from .schemas import Task
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
+from fastapi.middleware.cors import CORSMiddleware
+
+from .database import SessionLocal, engine
+from . import models, schemas
+
+# Create tables
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# Create table on startup
-create_table()
+# ✅ CORS Middleware (IMPORTANT)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all (for development)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-#  ROUTES  
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
+
+# ✅ CREATE TASK
 @app.post("/tasks/")
-def create_task(task: Task):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute(
-        "INSERT INTO tasks (title, description, status) VALUES (?, ?, ?)",
-        (task.title, task.description, task.status)
+def create_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
+    new_task = models.Task(
+        title=task.title,
+        description=task.description,
+        status=task.status
     )
-    
-    conn.commit()
-    conn.close()
-    
-    return {"message": "Task created successfully"}
+    db.add(new_task)
+    db.commit()
+    db.refresh(new_task)
+    return new_task
 
-@app.put("/tasks/{task_id}")
-def update_task(task_id: int, task: Task):
-    conn = get_db_connection()
-    
-    result = conn.execute(
-        "UPDATE tasks SET title = ?, description = ?, status = ? WHERE id = ?",
-        (task.title, task.description, task.status, task_id)
-    )
-    
-    conn.commit()
-    conn.close()
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    return {"message": "Task updated successfully"}
-
-@app.get("/")
-def home():
-    return {"message":"welcome to Task Manager API"}
-
+# ✅ READ ALL TASKS
 @app.get("/tasks/")
-def get_tasks():
-    conn = get_db_connection()
-    tasks = conn.execute("SELECT * FROM tasks").fetchall()
-    conn.close()
-    
-    return [dict(task) for task in tasks]
+def get_tasks(db: Session = Depends(get_db)):
+    return db.query(models.Task).all()
 
 
-@app.get("/tasks/{task_id}")
-def get_task(task_id: int):
-    conn = get_db_connection()
-    task = conn.execute(
-        "SELECT * FROM tasks WHERE id = ?",
-        (task_id,)
-    ).fetchone()
-    conn.close()
-
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    return dict(task)
-
-
+# ✅ DELETE TASK
 @app.delete("/tasks/{task_id}")
-def delete_task(task_id: int):
-    conn = get_db_connection()
-    result = conn.execute(
-        "DELETE FROM tasks WHERE id = ?",
-        (task_id,)
-    )
-    conn.commit()
-    conn.close()
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+    
+    if not task:
+        return {"error": "Task not found"}
 
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Task not found")
+    db.delete(task)
+    db.commit()
+    return {"message": "Deleted"}
 
-    return {"message": "Task deleted successfully"}
+
+# ✅ UPDATE TASK (NEW - completes CRUD)
+@app.put("/tasks/{task_id}")
+def update_task(task_id: int, updated_task: schemas.TaskCreate, db: Session = Depends(get_db)):
+    task = db.query(models.Task).filter(models.Task.id == task_id).first()
+
+    if not task:
+        return {"error": "Task not found"}
+
+    task.title = updated_task.title
+    task.description = updated_task.description
+    task.status = updated_task.status
+
+    db.commit()
+    db.refresh(task)
+
+    return task
