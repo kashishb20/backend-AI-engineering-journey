@@ -1,16 +1,11 @@
 # Task Manager App 🚀
 
-This is a full-stack Task Manager built using:
-
-- FastAPI (Backend)
-- SQLite (Database)
-- HTML, CSS, JS (Frontend)
-
-## Features
-- Create, Read, Update, Delete tasks
-- User Signup & Login
-- Clean UI
-
+Simple Task Manager built using FastAPI and HTML.
+Features:
+- Create tasks
+- View tasks
+- Delete tasks
+- Backend + frontend integration
 ## How to run
 
 ```bash
