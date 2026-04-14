@@ -5,42 +5,136 @@
 
     <style>
         body {
-            font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-            background: #850E35;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
             display: flex;
             justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
 
         .container {
-            background: #EE6983;
+            background: #1e293b;
             padding: 30px;
-            margin-top: 50px;
-            width: 400px;
-            border-radius: 10px;
+            width: 420px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            color: #e2e8f0;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 20px;
+            font-weight: 500;
         }
 
         input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin: 8px 0;
+            border-radius: 8px;
+            border: none;
+            background: #334155;
+            color: #e2e8f0;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input::placeholder {
+            color: #94a3b8;
+        }
+
+        input:focus {
+            transform: scale(1.02);
+            box-shadow: 0 0 5px #3b82f6;
         }
 
         button {
-            padding: 10px;
+            width: 100%;
+            padding: 12px;
             border: none;
-            background: #43334C;
+            background: #3b82f6;
             color: white;
-            margin-top: 5px;
+            margin-top: 10px;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            background: #2563eb;
         }
 
         li {
-            background: #FCF5EE;
+            background: #334155;
             margin: 10px 0;
-            padding: 10px;
+            padding: 14px 16px;
+            border-radius: 10px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            color: #e2e8f0;
+            animation: slideIn 0.4s ease;
+            transition: transform 0.2s ease, opacity 0.2s ease;
         }
+
+        li span {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        li button {
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 6px;
+            transition: 0.2s;
+            width: auto;
+        }
+
+        li button:hover {
+            background: rgba(239, 68, 68, 0.1);
+            transform: scale(1.2);
+        }
+
+        li.removing {
+            opacity: 0;
+            transform: translateX(50px);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
     </style>
 </head>
 
@@ -66,20 +160,36 @@
 
 const API_URL = "http://127.0.0.1:8000/tasks/";
 
-// CREATE
+// CREATE TASK
 async function createTask() {
     const title = document.getElementById("title").value;
     const description = document.getElementById("description").value;
     const status = document.getElementById("status").value;
 
-    await fetch(`${API_URL}?title=${title}&description=${description}&status=${status}`, {
-        method: "POST"
-    });
+    try {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ title, description, status })
+        });
 
-    getTasks();
+        if (!response.ok) throw new Error();
+
+        document.getElementById("title").value = "";
+        document.getElementById("description").value = "";
+        document.getElementById("status").value = "";
+
+        getTasks();
+
+    } catch {
+        alert("❌ Failed to create task");
+    }
 }
 
-// READ
+
+// GET TASKS
 async function getTasks() {
     const response = await fetch(API_URL);
     const tasks = await response.json();
@@ -92,23 +202,31 @@ async function getTasks() {
 
         li.innerHTML = `
             <span>${task.title} (${task.status})</span>
-            <button onclick="deleteTask(${task.id})">❌</button>
+            <button onclick="deleteTask(${task.id}, this)">✖</button>
         `;
 
         list.appendChild(li);
     });
 }
 
-// DELETE
-async function deleteTask(id) {
-    await fetch(`${API_URL}${id}`, {
-        method: "DELETE"
-    });
 
-    getTasks();
+// DELETE TASK (with animation)
+async function deleteTask(id, btn) {
+    const item = btn.parentElement;
+
+    item.classList.add("removing");
+
+    setTimeout(async () => {
+        await fetch(`${API_URL}${id}`, {
+            method: "DELETE"
+        });
+
+        getTasks();
+    }, 300);
 }
 
-// Load tasks
+
+// load tasks
 window.onload = getTasks;
 
 </script>
